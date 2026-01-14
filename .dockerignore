@@ -1,0 +1,8 @@
+venv/
+.venv/
+__pycache__/
+token.json
+processed_emails.json
+.git
+.gitignore
+proof/
