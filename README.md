@@ -130,6 +130,9 @@ docker run -it \
 ```
 
 > The volume mounts ensure OAuth tokens and state files persist outside the container.
+> <img width="1920" height="1080" alt="Screenshot 2026-01-14 180813" src="https://github.com/user-attachments/assets/cf898260-7d6c-439c-a94e-cd3ca616ab57" />
+
+> 
 
 ---
 
