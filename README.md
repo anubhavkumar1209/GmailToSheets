@@ -1,225 +1,209 @@
-📧 Gmail to Google Sheets Automation
+# 📄 README.md — Gmail to Google Sheets Automation
 
-Author: Anubhav Kumar
-Email: anubhavrajyt@gmail.com
+---
 
-👋 Introduction
+## 1️⃣ High-Level Architecture Diagram
 
-This project was built as part of an internship assignment to demonstrate real-world automation using Google APIs.
+The architecture diagram represents the complete flow of how unread Gmail emails are processed and stored in Google Sheets.
 
-The goal was simple but practical:
-read real unread emails from Gmail and automatically log them into a Google Sheet, without duplicating data and while following proper security practices.
+### Flow Explanation (in simple words):
 
-This project closely mimics how small internal automation tools are built in real companies.
+- The system starts by reading unread emails from Gmail  
+- Emails are accessed securely using Gmail API with OAuth 2.0  
+- A Python automation script processes each email  
+- Email content is parsed to extract useful information  
+- A duplicate check ensures the same email is not processed again  
+- New emails are added to Google Sheets  
+- Successfully processed emails are marked as READ
 
-🎯 What This Project Does
+- <img width="1536" height="1024" alt="ChatGPT Image Jan 14, 2026, 05_38_17 PM" src="https://github.com/user-attachments/assets/a74cfb10-de02-4243-9ba9-60949d044ad2" />
 
-Connects to Gmail using OAuth 2.0
 
-Reads only unread emails from Inbox
+👉 The diagram visually shows how data flows from **Gmail → Python → Google Sheets**.
 
-Extracts:
+---
 
-Sender
+## 2️⃣ Step-by-Step Setup Instructions
 
-Subject
+### Step 1: Prerequisites
 
-Date & time
+Before starting, make sure you have:
 
-Email body (plain text)
+- Python 3 installed on your system  
+- A Google account  
+- Access to Google Cloud Console  
 
-Appends each email as a new row in Google Sheets
+---
 
-Marks emails as READ after processing
+### Step 2: Clone the Project & Install Dependencies
 
-Ensures no duplicate emails are ever logged
-
-🧠 Why This Project Is Useful
-
-In many teams, people manually track important emails (invoices, job alerts, leads, etc.) in spreadsheets.
-This project automates that entire process and ensures:
-
-No manual copying
-
-No repeated data
-
-Safe and secure access using OAuth
-
-🏗️ High-Level Architecture
-Unread Gmail Emails
-        |
-        v
-   Gmail API
-   (OAuth 2.0)
-        |
-        v
-  Python Automation
-  - Fetch emails
-  - Parse content
-  - Prevent duplicates
-        |
-        v
- Google Sheets API
- (Append rows)
-
-📂 Project Structure
-gmail-to-sheets/
-│
-├── src/
-│   ├── __init__.py
-│   ├── gmail_service.py
-│   ├── sheets_service.py
-│   ├── email_parser.py
-│   └── main.py
-│
-├── credentials/
-│   └── credentials.json   (not committed)
-│
-├── proof/                 (screenshots & video)
-│
-├── config.py
-├── requirements.txt
-├── README.md
-└── .gitignore
-
-⚙️ How to Set Up and Run
-1️⃣ Prerequisites
-
-Python 3.x installed
-
-A Gmail account
-
-Google Cloud account
-
-2️⃣ Install Dependencies
+```bash
+git clone <your-repository-link>
+cd gmail-to-sheets
 python -m venv venv
-venv\Scripts\activate
+source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+```
 
-3️⃣ Google Cloud Setup
+---
 
-Create a new Google Cloud project
+### Step 3: Google Cloud Configuration
 
-Enable:
+- Open **Google Cloud Console**
+- Create a new project
+- Enable the following APIs:
+  - **Gmail API**
+  - **Google Sheets API**
+- Configure **OAuth Consent Screen**
+- Create **OAuth 2.0 Client ID (Desktop Application)**
+- Download `credentials.json`
+- Place it inside the `credentials/` folder of the project
 
-Gmail API
+---
 
-Google Sheets API
+### Step 4: Google Sheet Setup
 
-Configure OAuth Consent Screen (External)
+- Create a new Google Sheet
+- Add the following headers in the first row:
 
-Create OAuth Client ID (Desktop App)
-
-Download credentials.json and place it in:
-
-credentials/credentials.json
-
-4️⃣ Google Sheet Setup
-
-Create a new Google Sheet
-
-Rename the sheet tab to:
-Gmail Logs
-
-Add headers in first row:
-
+```
 From | Subject | Date | Content
+```
 
+- Copy the **Spreadsheet ID** from the Google Sheet URL
+- Paste the Spreadsheet ID into the project configuration file
 
-Copy Spreadsheet ID and add it to config.py
+---
 
-5️⃣ Run the Script
+### Step 5: Run the Script (Local)
+
+```bash
 python -m src.main
+```
 
+---
 
-First run
+## 🐳 6️⃣ Docker Setup (Optional)
 
-Browser opens for Google login
+Docker allows you to run this project in an isolated and consistent environment without setting up Python locally.
 
-Permissions are granted
+### Step 1: Prerequisites
 
-Emails are logged
+- Docker installed on your system  
+- Docker Desktop running  
 
-Emails are marked as read
+---
 
-Second run
+### Step 2: Dockerfile (Project Root)
 
-No new unread emails.
+```dockerfile
+FROM python:3.10-slim
 
-🔐 OAuth Flow (Explained Simply)
+WORKDIR /app
 
-Uses OAuth 2.0 Desktop Flow
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-User manually logs in once
+COPY . .
 
-Access token is saved locally (token.json)
+CMD ["python", "-m", "src.main"]
+```
 
-No passwords are stored
+---
 
-No service accounts are used
+### Step 3: Build Docker Image
 
-This follows Google’s recommended security practices.
+```bash
+docker build -t gmail-to-sheets .
+```
 
-🔁 How Duplicate Emails Are Prevented
+---
 
-Each Gmail email has a unique message ID.
+### Step 4: Run Docker Container
 
-After processing an email:
+```bash
+docker run -it \
+  -v $(pwd)/credentials:/app/credentials \
+  -v $(pwd)/token.json:/app/token.json \
+  -v $(pwd)/processed_emails.json:/app/processed_emails.json \
+  gmail-to-sheets
+```
 
-Its ID is saved in processed_emails.json
+> The volume mounts ensure OAuth tokens and state files persist outside the container.
 
-The email is marked as READ
+---
 
-On re-running the script:
+## 3️⃣ Technical Explanation
 
-Already processed IDs are skipped
+### 🔐 OAuth Flow Used
 
-No duplicate rows are added
+The project uses **OAuth 2.0 Desktop Flow**.
 
-This makes the script safe to run multiple times.
+- On the first run, a browser opens for Google login  
+- User grants permission to Gmail and Google Sheets  
+- A `token.json` file is created  
+- On future runs, the token is reused automatically  
+- No need to log in again every time  
 
-💾 State Persistence Strategy
+This ensures secure and authorized access to user data.
 
-Method used: Local JSON file
+---
 
-Why this approach?
+### 🔁 Duplicate Prevention Logic
 
-Lightweight
+Duplicate entries are avoided using a two-step approach:
 
-No database needed
+#### Unread Emails Only
+- Only emails with the `UNREAD` label are fetched  
 
-Easy to explain and debug
+#### Message ID Check
+- Each Gmail email has a unique Message ID  
+- The script checks if this ID already exists  
+- If yes → email is skipped  
+- If no → email is processed and stored  
 
-Perfect for small automation tasks
+This guarantees **no duplicate rows in Google Sheets**.
 
-⭐ Bonus Features Implemented
+---
 
-Subject-based filtering (optional)
+### 💾 State Persistence Method
 
-Logging with timestamps
+To remember already processed emails, the project uses local state storage.
 
-Large email body handling (safe truncation)
+- A file named `processed_emails.json` is used  
+- It stores Message IDs of processed emails  
+- Even if the script stops or restarts, data is not lost  
+- No database is required  
 
-Error handling for API failures
+This method is simple, lightweight, and effective.
 
-Clean and modular code structure
+---
 
-⚠️ Limitations
+## 4️⃣ Challenge Faced & Solution
 
-Only plain-text email bodies are logged
+### Challenge
+Handling large and multipart emails.
 
-Very long emails are truncated to comply with Google Sheets limits
+### Problem
+- Some emails contain both HTML and plain text  
+- Large content caused Google Sheets API errors due to cell size limits  
 
-Script is manually triggered (no scheduler included)
+### Solution
+- Implemented recursive parsing to extract only `text/plain`  
+- Ignored HTML formatting  
+- Limited email content to **4,000 characters**  
+- Ensured smooth insertion into Google Sheets  
 
-📸 Proof of Execution
+This made the system stable and API-friendly.
 
-The proof/ folder contains:
+---
 
-Gmail inbox screenshot (unread emails)
+## 5️⃣ Limitations of the Solution
 
-Google Sheet populated with data
+- Only plain text emails are supported  
+- HTML formatting is ignored  
+- Attachments are not downloaded  
+- Script must be run manually or via cron job  
+- High email volume may hit Google API rate limits  
 
-OAuth consent screen screenshot
-
-Short screen-recorded explanation video (2–3 minutes)
+---
