@@ -9,6 +9,12 @@ SHEET_NAME = "Gmail Logs"
 
 STATE_FILE = "processed_emails.json"
 
-# BONUS
-SUBJECT_KEYWORD = None   # e.g. "Invoice" or None
+SUBJECT_KEYWORD = None
 MAX_CELL_LENGTH = 40000
+
+EXCLUDED_SENDERS = [
+    "no-reply",
+    "noreply",
+    "do-not-reply",
+    "automated"
+]

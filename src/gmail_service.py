@@ -14,18 +14,19 @@ from config import SCOPES
 def _decode(value):
     if not value:
         return ""
-    parts = decode_header(value)
-    result = ""
-    for part, enc in parts:
+    decoded_parts = decode_header(value)
+    text = ""
+    for part, encoding in decoded_parts:
         if isinstance(part, bytes):
-            result += part.decode(enc or "utf-8", errors="ignore")
+            text += part.decode(encoding or "utf-8", errors="ignore")
         else:
-            result += part
-    return result
+            text += part
+    return text
 
 
 def get_gmail_service():
     creds = None
+
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
 
@@ -34,37 +35,41 @@ def get_gmail_service():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials/credentials.json", SCOPES
+                "credentials/credentials.json",
+                SCOPES
             )
             creds = flow.run_local_server(port=0)
 
-        with open("token.json", "w") as f:
-            f.write(creds.to_json())
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
 
     return build("gmail", "v1", credentials=creds)
 
 
 def fetch_unread_messages(service):
-    res = service.users().messages().list(
+    response = service.users().messages().list(
         userId="me",
         labelIds=["INBOX", "UNREAD"]
     ).execute()
-    return res.get("messages", [])
+
+    return response.get("messages", [])
 
 
 def get_email_details(service, msg_id):
-    msg = service.users().messages().get(
+    message = service.users().messages().get(
         userId="me",
         id=msg_id,
         format="raw"
     ).execute()
 
-    raw = base64.urlsafe_b64decode(msg["raw"])
-    email_msg = message_from_bytes(raw)
+    raw_data = base64.urlsafe_b64decode(message["raw"])
+    email_msg = message_from_bytes(raw_data)
 
     sender = _decode(email_msg.get("From"))
     subject = _decode(email_msg.get("Subject"))
     date = email_msg.get("Date", "")
+
+    labels = ", ".join(message.get("labelIds", []))
 
     body = ""
     if email_msg.is_multipart():
@@ -75,7 +80,7 @@ def get_email_details(service, msg_id):
     else:
         body = email_msg.get_payload(decode=True).decode(errors="ignore")
 
-    return sender, subject, date, body
+    return sender, subject, date, body, labels
 
 
 def mark_as_read(service, msg_id):

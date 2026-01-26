@@ -1,7 +1,6 @@
 import json
 import os
 import logging
-from datetime import datetime
 
 from src.gmail_service import (
     get_gmail_service,
@@ -22,52 +21,55 @@ logging.basicConfig(
 
 def load_state():
     if os.path.exists(STATE_FILE):
-        with open(STATE_FILE, "r") as f:
-            return set(json.load(f))
+        with open(STATE_FILE, "r") as file:
+            return set(json.load(file))
     return set()
 
 
 def save_state(state):
-    with open(STATE_FILE, "w") as f:
-        json.dump(list(state), f)
+    with open(STATE_FILE, "w") as file:
+        json.dump(list(state), file)
 
 
 def main():
-    gmail = get_gmail_service()
-    sheets = get_sheets_service(gmail._http.credentials)
+    gmail_service = get_gmail_service()
+    sheets_service = get_sheets_service(gmail_service._http.credentials)
 
-    processed = load_state()
-    messages = fetch_unread_messages(gmail)
+    processed_ids = load_state()
+    unread_messages = fetch_unread_messages(gmail_service)
 
-    if not messages:
-        logging.info("No new unread emails.")
+    if not unread_messages:
+        logging.info("No new unread emails found.")
         return
 
-    for msg in messages:
-        msg_id = msg["id"]
-        if msg_id in processed:
+    processed_recent_emails = 0
+
+    for message in unread_messages:
+        msg_id = message["id"]
+
+        if msg_id in processed_ids:
             continue
 
         try:
-            sender, subject, date, body = get_email_details(gmail, msg_id)
-            row = clean_and_filter(sender, subject, date, body)
+            sender, subject, date, body, labels = get_email_details(gmail_service, msg_id)
+            row = clean_and_filter(sender, subject, date, body, labels)
 
-            if not row:
-                mark_as_read(gmail, msg_id)
-                processed.add(msg_id)
-                continue
+            mark_as_read(gmail_service, msg_id)
+            processed_ids.add(msg_id)
 
-            append_row(sheets, row)
-            mark_as_read(gmail, msg_id)
-            processed.add(msg_id)
+            if row:
+                append_row(sheets_service, row)
+                processed_recent_emails += 1
+                logging.info(f"Logged email: {subject}")
 
-            logging.info(f"Processed: {subject}")
+        except Exception as error:
+            logging.error(f"Error processing message {msg_id}: {error}")
 
-        except Exception as e:
-            logging.error(f"Failed email {msg_id}: {e}")
+    if processed_recent_emails == 0:
+        logging.info("Completed: No unread emails received in the last 24 hours.")
 
-    save_state(processed)
-    logging.info("Execution completed.")
+    save_state(processed_ids)
+    logging.info("Script execution finished.")
 
 
 if __name__ == "__main__":
