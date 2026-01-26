@@ -210,3 +210,40 @@ This made the system stable and API-friendly.
 - High email volume may hit Google API rate limits  
 
 ---
+
+## 🔄 6️⃣ Post-Submission Modification (Day 1 – Incubation)
+
+After the initial submission, additional requirements were provided as part of the incubation process. The goal was to extend the solution while keeping the original architecture intact.
+
+### ✅ Modifications Implemented
+
+#### 1️⃣ Process Only Emails Received in the Last 24 Hours
+- The script validates the received timestamp of each unread email.
+- Emails older than **24 hours** are ignored.
+- This ensures that only recent and relevant emails are logged.
+- <img width="1919" height="1079" alt="24hourslastonlycheck" src="https://github.com/user-attachments/assets/ee5e6b87-93a4-4299-884b-d596b49080fb" />
+
+
+#### 2️⃣ Exclude Automated / No-Reply Emails
+- Emails sent from automated sources such as:
+  - `no-reply`
+  - `noreply`
+  - `do-not-reply`
+- These emails are filtered out before insertion.
+- They are still marked as **read** and stored in state to avoid reprocessing.
+- <img width="1919" height="964" alt="UnreadEmailWithno-replyin4thposition" src="https://github.com/user-attachments/assets/8d941457-9ee1-492e-bbde-2e22246b2777" />
+<img width="1919" height="962" alt="no-reply emails" src="https://github.com/user-attachments/assets/0c75b843-91e8-428d-b6b5-30cc8627eaac" />
+
+
+
+
+#### 3️⃣ Add Email Labels as a New Column
+- A new **Labels** column was added to the Google Sheet.
+- Gmail labels such as `INBOX`, `CATEGORY_PROMOTIONS`, and `CATEGORY_UPDATES` are extracted.
+- This improves categorization and analysis of stored emails.
+
+<img width="1919" height="963" alt="Add new column" src="https://github.com/user-attachments/assets/7c0e03af-03d1-4f90-a79d-17a7ea9c16ed" />
+
+#### 4️⃣ Completion Feedback
+- If no unread emails from the last 24 hours are found, the script logs:
+Completed: No unread emails received in the last 24 hours.
